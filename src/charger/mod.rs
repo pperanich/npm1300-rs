@@ -326,6 +326,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         &mut self,
         limit: DischargeCurrentLimit,
     ) -> Result<(), crate::NPM1300Error<I2c::Error>> {
+        // NOTE: the following magic numbers come from the product specification doc.
         let (msb, lsb) = match limit {
             DischargeCurrentLimit::Low => {
                 // 200mA maximum discharge current
@@ -831,6 +832,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
             .await?
             .bchgisetdischargelsb();
 
+        // NOTE: the following magic numbers come from the product specification doc.
         match (msb, lsb) {
             (42, 0) => Ok(DischargeCurrentLimit::Low),   // 200mA case
             (207, 1) => Ok(DischargeCurrentLimit::High), // 1000mA case

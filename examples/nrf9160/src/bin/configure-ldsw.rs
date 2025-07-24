@@ -9,7 +9,6 @@ use embassy_nrf::{
     bind_interrupts,
     twim::{self, Twim},
 };
-//use embassy_time::Timer;
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -37,7 +36,6 @@ async fn main(_spawner: Spawner) {
     let twi = Twim::new(p.SERIAL0, Irqs, sdapin, sclpin, config);
     
     let mut npm1300 = NPM1300::new(twi, embassy_time::Delay);
-    //defmt::info!("Enableing LWDSW1...");
     let _ = npm1300.enable_ldsw2().await;
     defmt::info!("Check Status...");
     let status = npm1300.get_ldsw_status().await.unwrap();

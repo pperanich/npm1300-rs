@@ -511,6 +511,16 @@ pub enum DischargeCurrentLimit {
     High,
 }
 
+// Implement conversion to f32
+impl From<DischargeCurrentLimit> for f32 {
+    fn from(value: DischargeCurrentLimit) -> Self {
+        match value {
+            DischargeCurrentLimit::Low => 200.0,
+            DischargeCurrentLimit::High => 1000.0,
+        }
+    }
+}
+
 /// Temperature threshold regions for NTC measurements
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "defmt-03", derive(defmt::Format))]

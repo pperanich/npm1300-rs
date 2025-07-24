@@ -1708,7 +1708,7 @@ ADC:
           description: ADC VBAT (or VBUS) burst measurement result upper 8-bits
     ADCGP1RESULTLSBS:
       type: register
-      description: ADC result LSB's (VBAT burst 0, 1, 2 and 3) or 2 IBAT/ 3 VBUS
+      description: ADC result LSB's (VBAT burst 0, 1, 2 and 3) - VBAT2RESULTLSB contains IBAT LSB, VBAT3RESULTLSB contains VBUS LSB
       access: ReadOnly
       address: 0x1A
       size_bits: 8

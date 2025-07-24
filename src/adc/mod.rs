@@ -699,9 +699,9 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
             .tempautotim())
     }
 
-    /// Configure auto ibat measurement enabled. It seems you dont
-    /// need to trigger the measurement, it is done automatically
-    /// when you measure vbat
+    /// Configure auto IBAT measurement enabled. According to the datasheet,
+    /// `ADCIBATMEASEN`: `Enable Auto IBAT measurement after VBAT task`.
+    /// The measurement is done automatically when you measure VBAT.
     ///
     /// # Arguments
     ///
@@ -764,17 +764,23 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         return Ok(status_enum);
     }
 
-    /// Measure IBAT current.
-    /// This is a 10 bit value which seems
-    /// to use the same register as the one used in vbat burst
-    /// so it might not be compatible with the vbat burst measurement
-    /// the ibat measurement is a 1023 bit value which is scaled to
+    /// Read IBAT current measurement. This method does NOT trigger IBAT measurements.
+    /// IBAT measurements are automatically triggered when VBAT measurements are performed
+    /// (if configure_ibat_measurement() was called with enable=true).
+    /// 
+    /// This is a 10 bit value which uses the same register as VBAT burst index 2.
+    /// To ensure you're reading an IBAT measurement (not VBAT), you should:
+    /// 1. Enable IBAT measurement with configure_ibat_measurement(true)
+    /// 2. Trigger a VBAT measurement first
+    /// 3. Then call this method to read the IBAT result
+    /// 
+    /// The IBAT measurement is a 1023 bit value which is scaled to
     /// the current max charge and discharge current, so the scaling is
     /// variable and needs to be scaled based on what is currently
     /// happening in the charger
     ///
     /// # Returns
-    /// Raw ac ibat value as uint16
+    /// Raw IBAT value as u16
     ///
     pub async fn measure_ibat_raw(&mut self) -> Result<u16, crate::NPM1300Error<I2c::Error>> {
         // Read measurement result

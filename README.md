@@ -22,7 +22,7 @@ This crate provides both low-level register access and a high-level API for mana
 | SYSREG — System regulator                 |        ✅         |         ✅         |
 | CHARGER — Battery charger                 |        ✅         |         ✅         |
 | BUCK — Buck regulators                    |        ✅         |         ✅         |
-| LOADSW — Load switches                    |        ✅         |         ✅         |
+| LOADSW — Load switches                    |        ⚠️         |         ⚠️         |
 | LDO — LDO regulators                      |        ❌         |         ❌         |
 | LEDDRV — LED drivers                      |        ✅         |         ✅         |
 | GPIO — General-purpose I/O                |        ✅         |         ✅         |
@@ -39,6 +39,8 @@ Legend:
 - ✅ Fully implemented (at least should be)
 - ⚠️ Implemented but has known issues (see [Issues](https://github.com/thermigo/npm1300-rs/issues))
 - ❌ Not yet implemented
+
+**Note:** LOADSW support is currently partial. Many configuration registers are not yet supported including `LDSW1GPISEL`, `LDSWCONFIG`, `LDSW1LDOSEL`, `LDSW1VOUTSEL`, etc. See [Issues](https://github.com/thermigo/npm1300-rs/issues) for planned enhancements.
 
 > [!WARNING]
 > While core functionality has been tested, this driver is not yet production-ready. Contributions and bug reports are welcome!
