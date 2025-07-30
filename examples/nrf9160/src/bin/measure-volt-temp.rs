@@ -12,7 +12,7 @@ use embassy_nrf::{
 
 use {defmt_rtt as _, panic_probe as _};
 
-use npm1300_rs::{
+use npm1300::{
     NtcThermistorType,
     NPM1300,
 };

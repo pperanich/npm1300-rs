@@ -735,7 +735,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d5439c4ad607c3c23abf66de8c8bf57ba8adcd1f129e699851a6e43935d339d"
 
 [[package]]
-name = "npm1300-rs"
+name = "npm1300"
 version = "0.1.0"
 dependencies = [
  "defmt 1.0.1",
@@ -765,7 +765,7 @@ dependencies = [
  "embassy-executor",
  "embassy-nrf",
  "embassy-time",
- "npm1300-rs",
+ "npm1300",
  "panic-probe",
 ]
 

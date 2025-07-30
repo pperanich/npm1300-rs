@@ -327,7 +327,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "npm1300-rs"
+name = "npm1300"
 version = "0.1.0"
 dependencies = [
  "defmt 1.0.1",

@@ -13,7 +13,7 @@ use embassy_nrf::{
 use embassy_time::Timer;
 use {defmt_rtt as _, panic_probe as _};
 
-use npm1300_rs::{
+use npm1300::{
     buck::BuckVoltage,
     gpios::{Gpio, GpioPolarity},
     NPM1300,
