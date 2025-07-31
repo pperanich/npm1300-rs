@@ -39,7 +39,7 @@ async fn main(_spawner: Spawner) {
 
     // Example 1: Configure boot monitor
     defmt::info!("Configuring boot monitor with 10 second timeout...");
-    let _ = npm1300.configure_boot_monitor(true, Some(10000)).await;
+    let _ = npm1300.configure_boot_monitor_with_errlog(true, Some(10000), None).await;
     
     let timer_status = npm1300.get_timer_status().await;
     defmt::info!("Timer status after boot monitor config: {:?}", timer_status);

@@ -214,6 +214,18 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         Ok(status.slowdomainconfigured() == crate::Slowdomainconfigured::Config)
     }
 
+    /// Kick the watchdog timer
+    ///
+    /// Resets the watchdog timer to prevent timeout. This should be called
+    /// periodically during normal operation to prevent watchdog reset.
+    pub async fn kick_watchdog(&mut self) -> Result<(), crate::NPM1300Error<I2c::Error>> {
+        self.device
+            .timer()
+            .watchdogkick()
+            .dispatch_async(|command| command.set_taskwatchdogkick(Task::Trigger))
+            .await
+    }
+
     /// Configure boot monitor with ERRLOG.SCRATCH0 integration
     ///
     /// This method configures the boot monitor timer and integrates with the

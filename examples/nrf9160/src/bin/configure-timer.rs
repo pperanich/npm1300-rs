@@ -18,6 +18,7 @@ use embassy_time::Timer;
 use {defmt_rtt as _, panic_probe as _};
 
 use npm1300::{
+    reset::BootMonitorEnable,
     timer::{TimerMode, TimerPrescaler},
     NPM1300,
 };
@@ -70,7 +71,7 @@ async fn main(_spawner: Spawner) {
 
     // Example 4: Boot monitor configuration
     defmt::info!("Configuring boot monitor...");
-    let _ = npm1300.configure_boot_monitor(true, Some(15000)).await;
+    let _ = npm1300.configure_boot_monitor_reset(BootMonitorEnable::Enabled).await;
     
     let is_boot_active = npm1300.is_boot_monitor_active().await;
     defmt::info!("Boot monitor active: {:?}", is_boot_active);
