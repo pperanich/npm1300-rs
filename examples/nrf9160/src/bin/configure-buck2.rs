@@ -11,26 +11,31 @@ use embassy_nrf::{
     twim::{self, Twim},
 };
 use embassy_time::Timer;
+
 use {defmt_rtt as _, panic_probe as _};
 
-use npm1300_rs::{
+use npm1300::{
     buck::BuckVoltage,
     gpios::{Gpio, GpioPolarity},
     NPM1300,
 };
 
 bind_interrupts!(struct Irqs {
-    SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0 => twim::InterruptHandler<peripherals::TWISPI0>;
+    SERIAL0 => twim::InterruptHandler<peripherals::SERIAL0>;
 });
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     let p = embassy_nrf::init(Default::default());
-    let config = twim::Config::default();
-    let mut pmic_gpio0 = Output::new(p.P1_06, Level::Low, OutputDrive::Standard);
-    let mut pmic_gpio1 = Output::new(p.P1_02, Level::High, OutputDrive::Standard);
+    
+    let sdapin = p.P0_28;
+    let sclpin = p.P0_29;
 
-    let twi = Twim::new(p.TWISPI0, Irqs, p.P0_07, p.P0_12, config);
+    let config = twim::Config::default();
+    let mut pmic_gpio0 = Output::new(p.P0_11, Level::Low, OutputDrive::Standard);
+    let mut pmic_gpio1 = Output::new(p.P0_12, Level::High, OutputDrive::Standard);
+
+    let twi = Twim::new(p.SERIAL0, Irqs, sdapin, sclpin, config);
 
     let mut npm1300 = NPM1300::new(twi, embassy_time::Delay);
     defmt::info!("Enabling buck 2...");

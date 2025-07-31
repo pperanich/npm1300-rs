@@ -90,7 +90,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         match status.enablecharging() {
             Ok(ChargerEnableSet::EnableCharger) => Ok(true),
             Ok(ChargerEnableSet::NoEffect) => Ok(false),
-            Err(_) => panic!("Failed to read BCHGENABLESET register"),
+            Err(_) => Err(crate::NPM1300Error::InvalidRegisterValue),
         }
     }
 
@@ -142,7 +142,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
                 Ok(true)
             }
             Ok(ChargerEnableFullCurrentChargeInCoolTempSet::NoEffect) => Ok(false),
-            Err(_) => panic!("Failed to read BCHGENABLESET register"),
+            Err(_) => Err(crate::NPM1300Error::InvalidRegisterValue),
         }
     }
 
@@ -180,7 +180,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         match status.disablerecharge() {
             Ok(ChargerDisableRechargeSet::NoEffect) => Ok(true),
             Ok(ChargerDisableRechargeSet::DisableRecharge) => Ok(false),
-            Err(_) => panic!("Failed to read BCHGDISABLESET register"),
+            Err(_) => Err(crate::NPM1300Error::InvalidRegisterValue),
         }
     }
 
@@ -214,7 +214,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         match status.disablentc() {
             Ok(DisableNtcSet::IgnoreNtc) => Ok(true),
             Ok(DisableNtcSet::NoEffect) => Ok(false),
-            Err(_) => panic!("Failed to read BCHGDISABLESET register"),
+            Err(_) => Err(crate::NPM1300Error::InvalidRegisterValue),
         }
     }
 
@@ -238,9 +238,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         &mut self,
         current_ma: u16,
     ) -> Result<(), crate::NPM1300Error<I2c::Error>> {
-        const MAX_CURRENT_MA: u16 = 800;
-
-        if current_ma > MAX_CURRENT_MA {
+        if current_ma > types::MAX_CHARGE_CURRENT_MA {
             return Err(crate::NPM1300Error::ChargerCurrentTooHigh(current_ma));
         }
 
@@ -255,8 +253,8 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         // Convert current to register values:
         // MSB = floor(current_ma/4)
         // LSB = 1 if (current_ma/2) is odd, 0 if even
-        let msb = (current_ma / 4) as u8;
-        let lsb = ((current_ma / 2) & 1) as u8;
+        let msb = (current_ma / CHARGE_CURRENT_MSB_DIVISOR) as u8;
+        let lsb = ((current_ma / CHARGE_CURRENT_LSB_DIVISOR) & 1) as u8;
 
         // Update MSB register
         self.device
@@ -279,7 +277,30 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
             Ok(())
         }
     }
+    /// Get the configured battery charger current
+    ///
+    /// * `Ok(u16)` - The configured charging current in milliamps (mA)
+    /// * `Err(NPM1300Error)` - An error occurred while reading the register values
+    pub async fn get_charger_config_current(
+        &mut self,
+    ) -> Result<u16, crate::NPM1300Error<I2c::Error>> {
+        let msb = self
+            .device
+            .charger()
+            .bchgisetmsb()
+            .read_async()
+            .await?
+            .bchgisetchargemsb();
+        let lsb = self
+            .device
+            .charger()
+            .bchgisetlsb()
+            .read_async()
+            .await?
+            .bchgisetchargelsb();
 
+        Ok((msb as u16) << CURRENT_MSB_SHIFT | (lsb as u16) << CURRENT_LSB_SHIFT)
+    }
     /// Set the battery discharge current limit
     ///
     /// Configures the maximum discharge current limit for the battery.
@@ -306,13 +327,11 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         let (msb, lsb) = match limit {
             DischargeCurrentLimit::Low => {
                 // 200mA maximum discharge current
-                // MSB = 42 (0x2A), LSB = 0
-                (42, 0)
+                (DISCHARGE_CURRENT_200MA_MSB, DISCHARGE_CURRENT_200MA_LSB)
             }
             DischargeCurrentLimit::High => {
                 // 1000mA maximum discharge current
-                // MSB = 207 (0xCF), LSB = 1
-                (207, 1)
+                (DISCHARGE_CURRENT_1000MA_MSB, DISCHARGE_CURRENT_1000MA_LSB)
             }
         };
 
@@ -426,14 +445,19 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         desired_resistance: u32,
         reference_resistance_25c: u32,
     ) -> Result<(), crate::NPM1300Error<I2c::Error>> {
+        // Validate resistance values
+        if desired_resistance == 0 || reference_resistance_25c == 0 {
+            return Err(crate::NPM1300Error::InvalidNtcThreshold);
+        }
+
         // Calculate the 10-bit threshold
         let threshold = roundf(
-            1024.0 * (desired_resistance as f32)
+            types::NTC_THRESHOLD_MULTIPLIER * (desired_resistance as f32)
                 / (desired_resistance as f32 + reference_resistance_25c as f32),
         );
 
         // Ensure the threshold fits within a 10-bit range
-        if !(0.0..=1023.0).contains(&threshold) {
+        if !(types::NTC_THRESHOLD_MIN..=types::NTC_THRESHOLD_MAX).contains(&threshold) {
             return Err(crate::NPM1300Error::InvalidNtcThreshold);
         }
 
@@ -441,8 +465,8 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         let threshold = threshold as u16;
 
         // Extract MSB (upper 8 bits) and LSB (lower 2 bits)
-        let msb = (threshold >> 2) as u8;
-        let lsb = (threshold & 0x03) as u8;
+        let msb = (threshold >> types::MSB_SHIFT) as u8;
+        let lsb = (threshold & types::LOWER_2_BITS_MASK) as u8;
 
         // Write MSB and LSB to respective registers based on the temperature region
         match region {
@@ -527,7 +551,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
                     .read_async()
                     .await?
                     .ntccoldlvllsb();
-                Ok((msb as u16) << 2 | (lsb as u16))
+                Ok((msb as u16) << MSB_SHIFT | (lsb as u16))
             }
             NtcThresholdRegion::Cool => {
                 let msb = self
@@ -544,7 +568,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
                     .read_async()
                     .await?
                     .ntccoollvllsb();
-                Ok((msb as u16) << 2 | (lsb as u16))
+                Ok((msb as u16) << MSB_SHIFT | (lsb as u16))
             }
             NtcThresholdRegion::Warm => {
                 let msb = self
@@ -561,7 +585,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
                     .read_async()
                     .await?
                     .ntcwarmlvllsb();
-                Ok((msb as u16) << 2 | (lsb as u16))
+                Ok((msb as u16) << MSB_SHIFT | (lsb as u16))
             }
             NtcThresholdRegion::Hot => {
                 let msb = self
@@ -578,7 +602,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
                     .read_async()
                     .await?
                     .ntchotlvllsb();
-                Ok((msb as u16) << 2 | (lsb as u16))
+                Ok((msb as u16) << MSB_SHIFT | (lsb as u16))
             }
         }
     }
@@ -605,19 +629,23 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         // examples are within the range 50-110 degrees Celsius.
         // This check also ensures the computed threshold fits within
         // a 10-bit range.
-        if !(50..=110).contains(&temperature_celsius) {
+        if !(types::DIE_TEMP_THRESHOLD_MIN..=types::DIE_TEMP_THRESHOLD_MAX)
+            .contains(&temperature_celsius)
+        {
             return Err(crate::NPM1300Error::InvalidDieTemperatureThreshold);
         }
 
-        // Calculate the 10-bit threshold
-        let k_die_temp = roundf((394.67 - temperature_celsius as f32) / 0.7926);
+        // Calculate the 10-bit threshold using formula: K_DIETEMP = round((394.67°C - T_D) / 0.7926)
+        let k_die_temp = roundf(
+            (types::DIE_TEMP_OFFSET - temperature_celsius as f32) / types::DIE_TEMP_COEFFICIENT,
+        );
 
         // Convert the threshold to a 10-bit unsigned integer
         let k_die_temp = k_die_temp as u16;
 
         // Extract MSB (upper 8 bits) and LSB (lower 2 bits)
-        let msb = (k_die_temp >> 2) as u8;
-        let lsb = (k_die_temp & 0x03) as u8;
+        let msb = (k_die_temp >> MSB_SHIFT) as u8;
+        let lsb = (k_die_temp & LOWER_2_BITS_MASK) as u8;
 
         // Write MSB and LSB to respective registers
         match threshold_type {
@@ -784,5 +812,92 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
                 })
             })
             .await
+    }
+
+    /// Get the current discharge current limit
+    ///
+    /// #returns
+    /// DischargeCurrentLimit enum
+    pub async fn get_discharge_current_limit(
+        &mut self,
+    ) -> Result<DischargeCurrentLimit, crate::NPM1300Error<I2c::Error>> {
+        let msb = self
+            .device
+            .charger()
+            .bchgisetdischargemsb()
+            .read_async()
+            .await?
+            .bchgisetdischargemsb();
+        let lsb = self
+            .device
+            .charger()
+            .bchgisetdischargelsb()
+            .read_async()
+            .await?
+            .bchgisetdischargelsb();
+
+        match (msb, lsb) {
+            (types::DISCHARGE_CURRENT_200MA_MSB, types::DISCHARGE_CURRENT_200MA_LSB) => {
+                Ok(DischargeCurrentLimit::Low)
+            } // 200mA case
+            (types::DISCHARGE_CURRENT_1000MA_MSB, types::DISCHARGE_CURRENT_1000MA_LSB) => {
+                Ok(DischargeCurrentLimit::High)
+            } // 1000mA case
+            _ => Err(crate::NPM1300Error::InvalidRegisterValue),
+        }
+    }
+
+    /// Enable or disable charging when battery voltage is below VBATLOW threshold
+    ///
+    /// When enabled, allows charging to start even when battery voltage is below the normal
+    /// VBATLOW threshold. This is useful for deeply discharged batteries that need to be
+    /// brought back to a safe voltage level.
+    ///
+    /// # Arguments
+    ///
+    /// * `enable` - If true, enables charging at low battery voltage. If false, disables it.
+    ///
+    /// # Safety
+    ///
+    /// Enabling charging at very low battery voltages should be done with caution and only
+    /// when the battery condition is known to be safe. Charging deeply discharged batteries
+    /// may require special consideration of charging parameters.
+    pub async fn set_enable_charging_at_low_battery_voltage(
+        &mut self,
+        enable: bool,
+    ) -> Result<(), crate::NPM1300Error<I2c::Error>> {
+        use crate::Enablevbatlowcharge;
+        self.device
+            .charger()
+            .bchgvbatlowcharge()
+            .write_async(|reg| {
+                reg.set_enablevbatlowcharge(if enable {
+                    Enablevbatlowcharge::Enable
+                } else {
+                    Enablevbatlowcharge::Disable
+                })
+            })
+            .await
+    }
+
+    /// Get the current setting for charging at low battery voltage
+    ///
+    /// # Returns
+    ///
+    /// `true` if charging at low battery voltage is enabled, `false` if disabled
+    pub async fn is_charging_at_low_battery_voltage_enabled(
+        &mut self,
+    ) -> Result<bool, crate::NPM1300Error<I2c::Error>> {
+        use crate::Enablevbatlowcharge;
+        let status = self
+            .device
+            .charger()
+            .bchgvbatlowcharge()
+            .read_async()
+            .await?;
+        match status.enablevbatlowcharge() {
+            Enablevbatlowcharge::Enable => Ok(true),
+            Enablevbatlowcharge::Disable => Ok(false),
+        }
     }
 }
