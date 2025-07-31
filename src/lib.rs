@@ -37,6 +37,26 @@ pub enum NPM1300Error<I2cError> {
     InvalidVbatMeasurementDelayValue,
     #[error("invalid VSYS threshold")]
     InvalidPofVsysThreshold,
+    #[error("invalid timer configuration")]
+    InvalidConfiguration,
+    #[error("timer not configured")]
+    TimerNotConfigured,
+    #[error("invalid voltage range")]
+    InvalidVoltageRange,
+    #[error("invalid current range")]
+    InvalidCurrentRange,
+    #[error("threshold too low")]
+    ThresholdTooLow,
+    #[error("threshold too high")]
+    ThresholdTooHigh,
+    #[error("mode not supported")]
+    ModeNotSupported,
+    #[error("invalid GPIO pin number")]
+    InvalidGpioPin,
+    #[error("invalid timer value")]
+    InvalidTimerValue,
+    #[error("invalid register value")]
+    InvalidRegisterValue,
 }
 
 #[derive(Debug)]
@@ -48,6 +68,29 @@ pub struct NPM1300<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async:
     device: Device<DeviceInterface<I2c>>,
     delay: Delay,
     ntc_beta: Option<f32>,
+}
+
+// Validation helper functions
+impl<I2cError> NPM1300Error<I2cError> {
+    /// Create a validation error for voltage range
+    pub fn voltage_out_of_range(voltage: f32, min: f32, max: f32) -> Self {
+        if voltage < min {
+            Self::ThresholdTooLow
+        } else if voltage > max {
+            Self::ThresholdTooHigh
+        } else {
+            Self::InvalidVoltageRange
+        }
+    }
+
+    /// Create a validation error for current range
+    pub fn current_out_of_range(current: u16, max: u16) -> Self {
+        if current > max {
+            Self::InvalidCurrentRange
+        } else {
+            Self::InvalidCurrentRange
+        }
+    }
 }
 
 impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayNs>

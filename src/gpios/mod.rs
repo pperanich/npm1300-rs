@@ -91,7 +91,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         config: GpioConfig,
     ) -> Result<(), crate::NPM1300Error<I2c::Error>> {
         if pin > 4 {
-            panic!("GPIO pin number must be between 0 and 4");
+            return Err(crate::NPM1300Error::InvalidGpioPin);
         }
         // GPIO mode configuration
         self.device
@@ -147,7 +147,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         pin: usize,
     ) -> Result<GpioStatus, crate::NPM1300Error<I2c::Error>> {
         if pin > 4 {
-            panic!("GPIO pin number must be between 0 and 4");
+            return Err(crate::NPM1300Error::InvalidGpioPin);
         }
         let status = self.device.gpios().gpiostatus().read_async().await?;
 

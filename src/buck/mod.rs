@@ -222,6 +222,11 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         gpio: Gpio,
         polarity: GpioPolarity,
     ) -> Result<(), crate::NPM1300Error<I2c::Error>> {
+        // Validate buck_index
+        if buck_index != 1 && buck_index != 2 {
+            return Err(crate::NPM1300Error::InvalidConfiguration);
+        }
+
         // Configure GPIO mode as input
         self.device
             .gpios()
@@ -241,7 +246,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
                     reg.set_buck_2_vretgpisel(gpio);
                     reg.set_buck_2_vretgpiinv(polarity);
                 }
-                _ => panic!("Invalid BUCK index"),
+                _ => unreachable!("BUCK index validated above"),
             })
             .await?;
         // Set retention mode output voltage
@@ -260,7 +265,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
                     .write_async(|reg| reg.set_value(voltage))
                     .await?
             }
-            _ => panic!("Invalid BUCK index"),
+            _ => unreachable!("BUCK index validated above"),
         }
         // Allow SW to override VSET pin
         self.device
@@ -269,7 +274,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
             .modify_async(|reg| match buck_index {
                 1 => reg.set_buck_1_swctrlsel(Buck1Swctrlsel::Swctrl),
                 2 => reg.set_buck_2_swctrlsel(Buck2Swctrlsel::Swctrl),
-                _ => panic!("Invalid BUCK index"),
+                _ => unreachable!("BUCK index validated above"),
             })
             .await
     }
@@ -338,6 +343,11 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         gpio: Gpio,
         polarity: GpioPolarity,
     ) -> Result<(), crate::NPM1300Error<I2c::Error>> {
+        // Validate buck_index
+        if buck_index != 1 && buck_index != 2 {
+            return Err(crate::NPM1300Error::InvalidConfiguration);
+        }
+
         if gpio != Gpio::None {
             // Configure GPIO mode as input
             self.device
@@ -359,7 +369,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
                         reg.set_buck_2_engpisel(gpio);
                         reg.set_buck_2_engpiinv(polarity);
                     }
-                    _ => panic!("Invalid BUCK index"),
+                    _ => unreachable!("BUCK index validated above"),
                 })
                 .await?;
         }
@@ -406,6 +416,11 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
         gpio: Gpio,
         polarity: GpioPolarity,
     ) -> Result<(), crate::NPM1300Error<I2c::Error>> {
+        // Validate buck_index
+        if buck_index != 1 && buck_index != 2 {
+            return Err(crate::NPM1300Error::InvalidConfiguration);
+        }
+
         if gpio != Gpio::None {
             // Configure GPIO mode as input
             self.device
@@ -427,7 +442,7 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
                         reg.set_buck_2_pwmgpisel(gpio);
                         reg.set_buck_2_pwmgpiinv(polarity);
                     }
-                    _ => panic!("Invalid BUCK index"),
+                    _ => unreachable!("BUCK index validated above"),
                 })
                 .await?;
         }

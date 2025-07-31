@@ -409,7 +409,7 @@ impl From<u8> for ChargerTerminationVoltage {
             13 => Self::V4_45,
             14 => Self::V3_60,
             15 => Self::V3_60,
-            _ => panic!("Invalid value"),
+            _ => Self::V3_60, // Default fallback for invalid values
         }
     }
 }
@@ -435,7 +435,7 @@ impl From<u8> for ChargerTrickleLevelSelect {
         match value {
             0 => Self::V2_9,
             1 => Self::V2_5,
-            _ => panic!("Invalid value"),
+            _ => Self::V2_9, // Default fallback for invalid values
         }
     }
 }
@@ -534,6 +534,58 @@ pub enum NtcThresholdRegion {
     /// Hot temperature threshold (highest)
     Hot,
 }
+
+// Discharge current limit constants
+// Source: nPM1300 Product Specification v1.2, Table 16: Discharge current limit selection
+/// MSB register value for 200mA maximum discharge current limit
+pub const DISCHARGE_CURRENT_200MA_MSB: u8 = 42;
+/// LSB register value for 200mA maximum discharge current limit  
+pub const DISCHARGE_CURRENT_200MA_LSB: u8 = 0;
+/// MSB register value for 1000mA maximum discharge current limit
+pub const DISCHARGE_CURRENT_1000MA_MSB: u8 = 207;
+/// LSB register value for 1000mA maximum discharge current limit
+pub const DISCHARGE_CURRENT_1000MA_LSB: u8 = 1;
+
+// Die temperature calculation constants
+// Source: nPM1300 Product Specification v1.2, Section 6.2.5 Die temperature monitoring
+/// Temperature coefficient for die temperature calculation (°C per LSB)
+/// Used in formula: K_DIETEMP = round((394.67°C - T_D) / 0.7926)
+pub const DIE_TEMP_COEFFICIENT: f32 = 0.7926;
+/// Temperature offset for die temperature calculation (°C)
+/// Used in formula: K_DIETEMP = round((394.67°C - T_D) / 0.7926)
+pub const DIE_TEMP_OFFSET: f32 = 394.67;
+
+// Charging current calculation constants
+/// Divisor for MSB calculation in charging current setting (mA per MSB)
+pub const CHARGE_CURRENT_MSB_DIVISOR: u16 = 4;
+/// Divisor for LSB calculation in charging current setting (mA per LSB)
+pub const CHARGE_CURRENT_LSB_DIVISOR: u16 = 2;
+/// Maximum supported charging current (mA)
+pub const MAX_CHARGE_CURRENT_MA: u16 = 800;
+
+// Bit manipulation constants
+/// Mask for extracting lower 2 bits (0b11)
+pub const LOWER_2_BITS_MASK: u16 = 0x03;
+/// Bit shift for MSB extraction (upper 8 bits)
+pub const MSB_SHIFT: u8 = 2;
+/// Bit shift for combining MSB and LSB in current calculation
+pub const CURRENT_MSB_SHIFT: u8 = 2;
+/// Bit shift for LSB in current calculation  
+pub const CURRENT_LSB_SHIFT: u8 = 1;
+
+// NTC threshold calculation constants
+/// Multiplier for NTC threshold calculation
+pub const NTC_THRESHOLD_MULTIPLIER: f32 = 1024.0;
+/// Maximum value for 10-bit NTC threshold
+pub const NTC_THRESHOLD_MAX: f32 = 1023.0;
+/// Minimum value for NTC threshold
+pub const NTC_THRESHOLD_MIN: f32 = 0.0;
+
+// Die temperature threshold limits
+/// Minimum allowed die temperature threshold (°C)
+pub const DIE_TEMP_THRESHOLD_MIN: u16 = 50;
+/// Maximum allowed die temperature threshold (°C)  
+pub const DIE_TEMP_THRESHOLD_MAX: u16 = 110;
 
 /// Die temperature threshold regions for temperature monitoring during charging
 #[derive(Debug, Clone, Copy)]

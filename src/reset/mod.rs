@@ -50,7 +50,10 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
     /// # Arguments
     ///
     /// * `value` - 7-bit value to write (0-127)
-    pub async fn write_scratch0(&mut self, value: u8) -> Result<(), crate::NPM1300Error<I2c::Error>> {
+    pub async fn write_scratch0(
+        &mut self,
+        value: u8,
+    ) -> Result<(), crate::NPM1300Error<I2c::Error>> {
         self.device
             .errlog()
             .scratch_0()
@@ -77,7 +80,10 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
     /// # Arguments
     ///
     /// * `value` - 8-bit value to write
-    pub async fn write_scratch1(&mut self, value: u8) -> Result<(), crate::NPM1300Error<I2c::Error>> {
+    pub async fn write_scratch1(
+        &mut self,
+        value: u8,
+    ) -> Result<(), crate::NPM1300Error<I2c::Error>> {
         self.device
             .errlog()
             .scratch_1()
@@ -178,5 +184,21 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
                 sensor_vbat_low: charger_error_sensor.sensorvbatlow() == 1,
             },
         })
+    }
+
+    /// Trigger software reset
+    ///
+    /// Forces a full system reset/power cycle. This will:
+    /// - Turn off all supplies
+    /// - Apply internal reset
+    /// - Device will restart as if power was cycled
+    ///
+    /// Note: Not available in Ship or Hibernate modes.
+    pub async fn software_reset(&mut self) -> Result<(), crate::NPM1300Error<I2c::Error>> {
+        self.device
+            .main()
+            .taskswreset()
+            .dispatch_async(|command| command.set_taskswreset(Task::Trigger))
+            .await
     }
 }

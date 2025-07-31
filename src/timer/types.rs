@@ -100,7 +100,8 @@ impl TimerValue {
             TimerPrescaler::Fast => 2,  // 2 ms prescaler
         };
 
-        let timer_ticks = duration_ms / prescaler_ms;
+        // Add rounding for better accuracy
+        let timer_ticks = (duration_ms + prescaler_ms / 2) / prescaler_ms;
         Self::from_u32(timer_ticks.min(0xFFFFFF)) // Limit to 24-bit max
     }
 

@@ -17,7 +17,7 @@ impl From<u8> for IbatStatuscodes {
             12 => Self::IbatStatChargeTrickle,
             13 => Self::IbatStatChargeCool,
             15 => Self::IbatStatChargeNormal,
-            _ => panic!("Invalid value"),
+            _ => Self::IbatStatChargeError, // Default fallback for invalid values
         }
     }
 }

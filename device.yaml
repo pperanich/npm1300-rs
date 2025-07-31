@@ -3,7 +3,23 @@ config:
   command_address_type: u16
   buffer_address_type: u16
   defmt_feature: defmt-03
-
+MAIN:
+  type: block
+  description: MAIN registers
+  address_offset: 0x0000
+  objects:
+    TASKSWRESET:
+      type: command
+      description: Task to force a full reboot power-cycle
+      address: 0x01
+      size_bits_in: 1
+      fields_in:
+        TASKSWRESET:
+          base: uint
+          start: 0
+          end: 1
+          description: Turn off all supplies and apply internal reset
+          try_conversion: crate::common::Task
 VBUSIN:
   type: block
   description: VBUSIN registers
@@ -133,7 +149,6 @@ VBUSIN:
           end: 6
           access: ReadOnly
           description: VBUS out active
-
 CHARGER:
   type: block
   description: CHARGER registers
@@ -1180,7 +1195,6 @@ BUCK:
             PWMMODEENABLED:
               value: 1
               description: PWM mode enabled
-
 LDSW:
   type: block
   description: LOADSW registers
@@ -1513,7 +1527,6 @@ LDSW:
           end: 5
           description: LDO2 programmable output voltage
           conversion: crate::ldsw::LdoVoltage
-
 LEDDRV:
   type: block
   description: LEDDRV registers
@@ -1565,7 +1578,6 @@ LEDDRV:
           end: 1
           description: Request to turn off LED
           try_conversion: crate::common::Task
-
 ERRLOG:
   type: block
   description: Error log registers
@@ -1776,7 +1788,6 @@ ERRLOG:
           end: 8
           access: ReadOnly
           description: Vbatlow status when error occurs
-
 GPIOS:
   type: block
   description: GPIOs registers
@@ -1921,7 +1932,6 @@ GPIOS:
           description: GPIO4 status
           access: ReadOnly
           try_conversion: crate::gpios::GpioStatus
-
 ADC:
   type: block
   description: SAADC registers
@@ -2313,14 +2323,13 @@ ADC:
           end: 1
           description: Enable auto IBAT measurement after VBAT task
           conversion:
-              name: IBATMEASENABLE
-              IBATOFF:
-                value: 0
-                description: IBAT measurement disabled
-              IBATON:
-                value: 1
-                description: IBAT measurement enabled
-
+            name: IBATMEASENABLE
+            IBATOFF:
+              value: 0
+              description: IBAT measurement disabled
+            IBATON:
+              value: 1
+              description: IBAT measurement enabled
 POF:
   type: block
   description: Power-fail comparator registers
@@ -2413,7 +2422,6 @@ POF:
             UNUSED15:
               value: 15
               description: 2.8V
-
 SHIP:
   type: block
   description: Ship and hibernate modes registers
@@ -2560,11 +2568,11 @@ SHIP:
             SHPHLDGPIO0:
               value: 1
               description: SHPHLD + GPIO0 buttons
-
 TIMER:
   type: block
   description: TIMER registers
   address_offset: 0x0700
+  # Note: Address 0x02 is not implemented in hardware - gap between 0x01 and 0x03
   objects:
     TIMERSET:
       type: command
@@ -2705,4 +2713,3 @@ TIMER:
           start: 0
           end: 8
           description: Timer least significant byte
-

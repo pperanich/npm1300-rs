@@ -1,5 +1,3 @@
-
-
 /// Boot monitor enable configuration
 ///
 /// Controls whether the boot monitor timer is enabled. The boot monitor
@@ -12,8 +10,6 @@ pub enum BootMonitorEnable {
     /// Boot monitor is enabled
     Enabled = 1,
 }
-
-
 
 impl From<BootMonitorEnable> for u8 {
     fn from(enable: BootMonitorEnable) -> Self {
@@ -41,8 +37,6 @@ pub enum ResetCause {
     /// Reset was activated
     Reset = 1,
 }
-
-
 
 impl From<ResetCause> for u8 {
     fn from(cause: ResetCause) -> Self {
