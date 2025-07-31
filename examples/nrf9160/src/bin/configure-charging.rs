@@ -61,6 +61,7 @@ async fn main(_spawner: Spawner) {
     let _ = npm1300.set_normal_temperature_termination_voltage(ChargerTerminationVoltage::V4_20).await;
     let _ = npm1300.set_warm_temperature_termination_voltage(ChargerTerminationVoltage::V4_10).await;
     let _ = npm1300.set_discharge_current_limit(DischargeCurrentLimit::Low).await;
+    let _ = npm1300.set_enable_charging_at_low_battery_voltage(true).await;
     let _ = npm1300.enable_battery_charging().await;
     let _ = npm1300.enable_battery_recharge().await;
     let _ = npm1300.configure_ibat_measurement(true).await;

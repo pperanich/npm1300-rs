@@ -839,4 +839,58 @@ impl<I2c: embedded_hal_async::i2c::I2c, Delay: embedded_hal_async::delay::DelayN
             _ => panic!("Invalid value"),
         }
     }
+
+    /// Enable or disable charging when battery voltage is below VBATLOW threshold
+    ///
+    /// When enabled, allows charging to start even when battery voltage is below the normal
+    /// VBATLOW threshold. This is useful for deeply discharged batteries that need to be
+    /// brought back to a safe voltage level.
+    ///
+    /// # Arguments
+    ///
+    /// * `enable` - If true, enables charging at low battery voltage. If false, disables it.
+    ///
+    /// # Safety
+    ///
+    /// Enabling charging at very low battery voltages should be done with caution and only
+    /// when the battery condition is known to be safe. Charging deeply discharged batteries
+    /// may require special consideration of charging parameters.
+    pub async fn set_enable_charging_at_low_battery_voltage(
+        &mut self,
+        enable: bool,
+    ) -> Result<(), crate::NPM1300Error<I2c::Error>> {
+        use crate::Enablevbatlowcharge;
+        self.device
+            .charger()
+            .bchgvbatlowcharge()
+            .write_async(|reg| {
+                reg.set_enablevbatlowcharge(if enable {
+                    Enablevbatlowcharge::Enable
+                } else {
+                    Enablevbatlowcharge::Disable
+                })
+            })
+            .await
+    }
+
+    /// Get the current setting for charging at low battery voltage
+    ///
+    /// # Returns
+    ///
+    /// `true` if charging at low battery voltage is enabled, `false` if disabled
+    pub async fn is_charging_at_low_battery_voltage_enabled(
+        &mut self,
+    ) -> Result<bool, crate::NPM1300Error<I2c::Error>> {
+        use crate::Enablevbatlowcharge;
+        let status = self
+            .device
+            .charger()
+            .bchgvbatlowcharge()
+            .read_async()
+            .await?;
+        match status.enablevbatlowcharge() {
+            Enablevbatlowcharge::Enable => Ok(true),
+            Enablevbatlowcharge::Disable => Ok(false),
+        }
+    }
 }

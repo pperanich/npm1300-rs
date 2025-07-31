@@ -22,7 +22,7 @@ use npm1300::{
 };
 
 bind_interrupts!(struct Irqs {
-    SERIAL0 => twim::InterruptHandler<peripherals::SERIAL0>;
+    SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0 => twim::InterruptHandler<peripherals::TWISPI0>;
 });
 
 #[embassy_executor::main]
@@ -38,19 +38,19 @@ async fn main(_spawner: Spawner) {
     config.scl_pullup = true;
 
     defmt::info!("Configuring TWIM...");
-    let twi = Twim::new(p.SERIAL0, Irqs, sdapin, sclpin, config);
+    let twi = Twim::new(p.TWISPI0, Irqs, sdapin, sclpin, config);
     
     let mut npm1300 = NPM1300::new(twi, embassy_time::Delay);
     
-    defmt::info!("Configuring LDSW1 as LDO with 1.8V output...");
+    defmt::info!("Configuring LDSW1 as LDO with 3.3V output...");
     // Configure LDSW1 as LDO mode
     let _ = npm1300.set_ldsw1_mode(Ldsw1Ldosel::Ldo).await;
-    // Set LDO1 output voltage to 1.8V
-    let _ = npm1300.set_ldsw1_ldo_voltage(LdoVoltage::V1_8).await;
+    // Set LDO1 output voltage to 3.3V
+    let _ = npm1300.set_ldsw1_ldo_voltage(LdoVoltage::V3_3).await;
     // Configure soft start
     let _ = npm1300.configure_ldsw1_soft_start(
         Ldsw1Softstartdisable::Noeffect,
-        Ldsw1Softstartsel::Ma20
+        Ldsw1Softstartsel::Ma35
     ).await;
     // Enable active discharge
     let _ = npm1300.set_ldsw1_active_discharge(Ldsw1Activedischarge::Active).await;
@@ -60,8 +60,8 @@ async fn main(_spawner: Spawner) {
     defmt::info!("Configuring LDSW2 as Load Switch...");
     // Configure LDSW2 as Load Switch mode
     let _ = npm1300.set_ldsw2_mode(Ldsw2Ldosel::Ldsw).await;
-    // Configure GPIO control for LDSW2 (using GPIO1)
-    let _ = npm1300.set_ldsw2_gpio_control(Gpio::Gpio1, GpioPolarity::NotInverted).await;
+    // Configure GPIO control for LDSW2 (using GPIO2)
+    let _ = npm1300.set_ldsw2_gpio_control(Gpio::Gpio2, GpioPolarity::NotInverted).await;
     // Enable LDSW2
     let _ = npm1300.enable_ldsw2().await;
     
